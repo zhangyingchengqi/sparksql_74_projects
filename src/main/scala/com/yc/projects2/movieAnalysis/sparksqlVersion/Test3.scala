@@ -32,7 +32,7 @@ object Test3 {
 
     //1.读取数据
     import spark.implicits._
-    //    用这个StructType时， spark.createDataFrame(  RDD, structType   ) 要求 是一个RDD,  所以这里用 spark.sparkContext   ,   而不用   spark.read
+    //    用这个StructType时， spark.createDataFrame(  RDD[Row], structType   ) 要求 是一个RDD,  所以这里用 spark.sparkContext   ,   而不用   spark.read
     val moviesLinesDataset = spark.sparkContext.textFile(filepath + "movies.dat")
     val occupationsLinesDataset = spark.sparkContext.textFile(filepath + "occupations.dat")
     val ratingsLinesDataset = spark.sparkContext.textFile(filepath + "ratings.dat")
@@ -87,7 +87,7 @@ object Test3 {
       StructField("classid",IntegerType, true)
     ))
      */
-    val movieSchema = StructType("MovieID::Title::Genres".split("::").map(column => StructField(column, StringType, true)))
+    val movieSchema = StructType(    "MovieID::Title::Genres".split("::").map(column => StructField(column, StringType, true))      )
     val occupationSchema = StructType("OccupationID::OccupationName".split("::").map(column => StructField(column, StringType, true)))
     //UserID::MovieID::Rating::Timestamp
     val ratingSchema = StructType("UserID::MovieID".split("::").map(column => StructField(column, StringType, true)))
@@ -137,10 +137,25 @@ object Test3 {
     println("=======更详细的输出信息========")
     // *   1. 所有电影中平均得分最高的前10部电影:    ( 分数,电影ID)
     println("所有电影中平均得分最高的前10部电影")
-    spark.sql("select  v_ratings.MovieID,title, Genres,avg(rating) as avgrating from v_ratings inner join v_movies on v_movies.movieid=v_ratings.movieid group by v_ratings.movieid,title,Genres order by avgrating desc,v_ratings.movieid asc limit 10").show()
+    spark.sql("select  v_ratings.MovieID,title, Genres,avg(rating) as avgrating " +
+      "from v_ratings " +
+      "inner join v_movies " +
+      "on v_movies.movieid=v_ratings.movieid " +
+      "group by v_ratings.movieid,title,Genres " +
+      "order by avgrating desc,v_ratings.movieid asc " +
+      "limit 10")
+      .show()
     // * 2. 观看人数最多的前10部电影:   (观影人数,电影ID)
     println("观看人数最多的前10部电影")
-    spark.sql("select v_ratings.movieid,title, Genres,count(v_ratings.movieid) as  countmovie from v_ratings inner join v_movies on v_movies.movieid=v_ratings.movieid  group by v_ratings.movieid,title,Genres order by countmovie desc,v_ratings.movieid asc limit 10").show()
+    spark.sql("select v_ratings.movieid,title, Genres,count(v_ratings.movieid) as  countmovie " +
+      "from v_ratings " +
+      "inner join v_movies " +
+      "on v_movies.movieid=v_ratings.movieid  " +
+      "group by v_ratings.movieid,title,genres " +
+      "order by countmovie desc,v_ratings.movieid asc " +
+      "limit 10")
+     //.explain()
+      .show()
 
     //2. API方案
     println("所有电影中平均得分最高的前10部电影")
@@ -159,7 +174,7 @@ object Test3 {
       .withColumnRenamed("MovieID", "mid")
       .join(moviesDF, $"mid" === $"movieid")
       .groupBy("MovieID", "title", "genres")
-      .count()
+      .count()  //计数
       .sort($"count".desc, $"MovieID".asc)
       .withColumnRenamed("count", "cns")
       .select("MovieID", "title", "genres", "cns")

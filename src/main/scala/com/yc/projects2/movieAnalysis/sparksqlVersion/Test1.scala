@@ -85,7 +85,7 @@ object Test1 {
     usersDF.createTempView( "v_users")
 
     // 1. 读取信息,统计数据条数.   职业数, 电影数, 用户数, 评分条数
-    println(  "评分条数"+ spark.sql("select count(  userid  ) as cn from v_ratings ").collect().toList )
+    println(  "评分条数"+ spark.sql("select count(  userid  ) as cn from v_ratings ").collect().toList(0) )
     println(  "职业条数"+ spark.sql("select count(  occupationID  ) as cn from v_occupation ").collect().toList )
     println(  "电影条数"+ spark.sql("select count(  MovieID  ) as cn from v_movies ").collect().toList )
     println(  "用户条数"+ spark.sql("select count(  userID  ) as cn from v_users ").collect().toList )
@@ -95,9 +95,9 @@ object Test1 {
     println( "每个职业 下的用户详细信息" )
     result.show(50)
 
-    //4. API.
+    //4. API.   usersDF与occupationsDF中有一个列重名, withColumnRenamed修改列名
     val result2=usersDF.withColumnRenamed("occupationid","oid")
-         .join(  occupationsDF,$"oid"===$"occupationid" )
+         .join(  occupationsDF,$"oid"===$"occupationid" )        //   ===  全等于
         .select(    "occupationid","occupationName","userid","gender","age","zipcode" ).toDF()
     println("第二种方法(api+DSL):")
     result2.show( 50 )

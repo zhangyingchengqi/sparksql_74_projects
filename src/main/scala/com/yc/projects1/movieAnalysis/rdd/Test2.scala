@@ -18,7 +18,7 @@ import org.apache.spark.{SparkConf, SparkContext}
  */
 object Test2 {
   def main(args: Array[String]): Unit = {
-    Logger.getLogger("org").setLevel(Level.INFO) //配置日志
+    Logger.getLogger("org").setLevel(Level.ERROR) //配置日志
 
     var userId="18"
 

@@ -76,7 +76,7 @@ object Test7 {
     usersDF.createTempView("v_users")
 
 
-    //与上一题一样，只是这一次是一个    _____    ?    UDF,UDAF,UDTF???
+    //与上一题一样，只是这一次是一个    _UDF____    ?    UDF,UDAF,UDTF???
     //分析每年度生产的电影总数
     println("1. 每年度生产的电影总数（SQL+UDF)")
     spark.udf.register("title2year", (title: String) => {
@@ -95,11 +95,16 @@ object Test7 {
         year.toInt
       }
     })
-    spark.sql("select title2year(title) , count(*) as cns from v_movies group by title2year(title) order by cns desc").show()
+
+    //  1.  from 表名
+    //   2. group by 列名
+    //  3.  select *
+    // 4. order by 列名
+    spark.sql("select title2year(title) as year , count(*) as cns from v_movies group by title2year(title) order by year asc").show()
 
     println("2. 每年度生产的电影总数（API)")
-    val resultDataFrame=moviesDF.selectExpr(   $"title2year(title)".as("year").toString() ).groupBy(   $"year").count()
-      .orderBy($"count".desc)
+    val resultDataFrame=moviesDF.selectExpr(   $"title2year(title)".as("year").toString()  ).groupBy(   $"year").count()
+      .orderBy($"year".asc)
     resultDataFrame.show()
 
 

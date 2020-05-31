@@ -84,7 +84,7 @@ object Test5 {
       .foreach(println)
 
     // 扩展:  上面的显示中加入电影信息   电影名,类型.
-    println("年龄段为:" + age + "喜爱的电影Top 10:( movieId, 电影名,平均分,总分数,观影次数,类型)") //   ratingWithinAge:        (        MovieID,  age, userid,Rating  )
+    println("年龄段为:" + age + "喜爱的电影Top 10:( movieId, 电影名,平均分,总分数,观影次数,类型),只按平均分降序取前10条") //   ratingWithinAge:        (        MovieID,  age, userid,Rating  )
     val rdd = ratingWithinAge.map(x => (x._1, (x._4.toDouble, 1))) //  (  MovieID, (rating,1) )
       .reduceByKey((x, y) => (x._1 + y._1, x._2 + y._2)) // ( MovieID,  (  总分,总次数)
       .map(item => (item._1, (item._2._1 / item._2._2, item._2._1, item._2._2))) // ( 电影id ,(平均分, 总分数,次数) )
@@ -104,7 +104,8 @@ object Test5 {
       .foreach(println)
 
     //扩展二：  二次排序，先根据平均分排，如平均分相同，按观影次数排序(降),观影次数相同(降)，则按电影名排序(升)
-    println("二次排序，先根据平均分排，如平均分相同，按观影次数排序(降),观影次数相同(降)，则按电影名排序(升)")
+    println("二次排序，先根据平均分排，如平均分相同，按观影次数排序(降),观影次数相同(降)，则按电影名排序(升)=========")
+    //joinedRdd.take(10).foreach(println )
     joinedRdd.sortBy(item => (-item._2._1._1, -item._2._1._3, item._2._2._1)) // tuple       (  movieId,((平均分, 总分数,次数),(title,genre) ) )
       .map(x => (x._1, x._2._2._1, x._2._2._2, x._2._1._1, x._2._1._2, x._2._1._3))
       .take(10)

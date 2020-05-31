@@ -42,10 +42,10 @@ object Test1 {
     ratingsRDD.cache()
     moviesRDD.cache()
 
-    println("职业数:"+ occupationsRDD.count() )
-    println("电影数:"+ moviesRDD.count() )
-    println("用户数:"+ usersRDD.count() )
-    println("评分条数:"+ratingsRDD.count)
+    println("职业数:" + occupationsRDD.count())
+    println("电影数:" + moviesRDD.count())
+    println("用户数:" + usersRDD.count())
+    println("评分条数:" + ratingsRDD.count)
 
     //  需求1: 显示 每个职业 下的用户信息  (   职业编号,( 人的编号,性别,年龄,邮编 ), 职业名)
     val usersBasic = usersRDD.map(_.split("::")) // UserID,Gender,Age,OccupationID,Zip-code

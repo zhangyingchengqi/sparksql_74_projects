@@ -73,23 +73,25 @@ object Test6 {
     ratingsDF.createTempView("v_ratings")
     usersDF.createTempView("v_users")
 
+    // movieid, title, genres     Drama|Thriller->     Drama, Trhiller,     1VN   select
     //不同类型的电影总数  : 要将电影类型由一个变为多个.
-    //分析:  方案一:  利用UDF, UDAF, UDTF.    用哪一个????
-    //      方案二: 因为这是一______,所以可以使用spark中的flatMap()来代替
+    //分析:  方案一: hive 利用UDF, UDAF, UDTF.    用哪一个????    1Vn
+    //      方案二: 因为这是一___UDTF___,所以可以使用spark中的flatMap()来代替
 
-    //moviesDF.show()
+    //   Row[movieid, title, genres]
+    moviesDF.show()
     val moviesWithGenres = moviesDF.flatMap(row => {
       val genres = row.getString(2)
-      genres.split("\\|")
+      genres.split("\\|")   // Array ->  traversable
     })
-    //moviesWithGenres.show()
+    moviesWithGenres.show(   )
     println("不同类型的电影总数( SQL)")
     moviesWithGenres.createTempView("v_moviesWithGenres")
     spark.sql("select value, count(*) as cns from v_moviesWithGenres group by value order by cns desc").show()
 
-    println("不同类型的电影总数( API)")
+    println("不同类型的电影总数( API )")
     import org.apache.spark.sql.functions._ //sql中支持的内置函数   (  max, min,avg, count, to_date,........ substr )
-    moviesWithGenres.groupBy($"value").agg(count(moviesWithGenres("value")).as("cns")).orderBy($"cns".desc).show()
+    moviesWithGenres.groupBy($"value").agg(   count(  moviesWithGenres("value") ).as("cns")).orderBy($"cns".desc).show()
 
     spark.stop()
   }
