@@ -1,16 +1,13 @@
 package com.yc.projects2.movieAnalysis.sparksqlVersion
 
-import java.util.regex.Pattern
-
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.{Dataset, SparkSession}
 
-import scala.collection.mutable.ListBuffer
-
 /*
-需求8: 分析每年度不同类型的电影生产总数
+需求9: 分析不同职业对观看电影类型的影响
+格式:  (职业名,(电影类型,观影次数))
 */
-object Test8 {
+object Test9 {
   def main(args: Array[String]): Unit = {
     Logger.getLogger("org").setLevel(Level.ERROR) //配置日志
     val filepath = "data/moviedata/medium/"
@@ -76,61 +73,49 @@ object Test8 {
     ratingsDF.createTempView("v_ratings")
     usersDF.createTempView("v_users")
 
-
-    //分析每年度生产的电影总数
-    println("1. 每年度不同类型的电影生产总数( SQL )")
-    spark.udf.register("title2year", (title: String) => {
-      var mname = ""
-      var year = ""
-      val pattern = Pattern.compile(" (.*) (\\(\\d{4}\\))") // Toy Story (1995)      (.*) (\\(\\d{4}\\))
-      val matcher = pattern.matcher(title)
-      if (matcher.find()) {
-        mname = matcher.group(1)
-        year = matcher.group(2)
-        year = year.substring(1, year.length() - 1)
-      }
-      if (year == "") {
-        -1
-      } else {
-        year.toInt
-      }
-    })
-    println(   "原始电影有:"+ moviesDF.count()+"条")   // 3883条
-    moviesDF.show(2)
-    //     1::Toy Story (1995)::Animation|Children's|Comedy   转换 =>
-    //   1::Toy Story (1995)::Animation
-    //    1::Toy Story (1995)::Children's
-    //   1::Toy Story (1995)::Comedy
+    /*
+       分析不同职业对观看电影类型的影响
+       格式:  (职业名,(电影类型,观影次数))      1vN:    hive,oracle,mysql自定义函数  UDTF
+    */
     val moviesWithGenres = moviesDF.flatMap(row => {
-      val movieid=row.getLong(0)
-      val title=row.getString(1)
+      val movieid = row.getLong(0)
+      val title = row.getString(1)
       val genres = row.getString(2)
-      val types=genres.split("\\|")
-      for(i<-0 until types.length) yield (movieid, title, types(i))
+      val types = genres.split("\\|")
+      for (i <- 0 until types.length) yield (movieid, title, types(i))
     })
-    println("显示按类别拆分后的数据:")
-    moviesWithGenres.show(6)
-    moviesWithGenres.toDF("movieid","title","genre").createTempView("v_moviesWithGenres")
 
-   println( "分解后的记录数:"+ spark.sql("select count(*) from v_moviesWithGenres").collect()(0) )   //6408
+    //spark.sql("select * from v_users").show()
 
-    spark.sql("select title2year(title) as year, genre,count(genre) as cns " +
+    moviesWithGenres.toDF("movieid", "title", "genre").createTempView("v_moviesWithGenres")
+    spark.sql("select OccupationName,genre,count(genre) " +
       "from v_moviesWithGenres " +
-      "group by title2year(title),genre " +
-      "order by year asc, cns desc ").show(20)
+      "inner join v_ratings " +
+      "on v_ratings.movieid=v_moviesWithGenres.movieid " +
 
-    println("1. 每年度不同类型的电影生产总数( API )")
-    val moviesWithGenresDF=moviesWithGenres.toDF("movieid","title","genre")
-    moviesWithGenresDF.show(2)
-    moviesWithGenresDF.selectExpr(   $"title2year(title)".as("year").toString(),"genre" )
-      .groupBy(    $"year",$"genre")
-      .count()
-      .orderBy( $"year".asc,$"count".desc)
+      "inner join v_users " +
+      "on v_users.userid=v_ratings.userid " + //注意这个顺序的问题,这个v_users 不能放在后面，因为inner join按从上到下的顺序.
+
+      "inner join v_occupation " +
+      "on v_occupation.occupationID=v_users.occupationID " +
+
+
+      "group by v_occupation.OccupationID,OccupationName, v_moviesWithgenres.genre " +
+      "order by OccupationName desc, genre desc ")
       .show()
 
 
+    println(" 不同职业对观看电影类型的影响   api方案")
+    val moviesWithGenre = moviesWithGenres.toDF("movieid", "title", "genre")
+    moviesWithGenre.join(ratingsDF, moviesWithGenre("movieid") === ratingsDF("movieid"))
+      .join(usersDF, ratingsDF("userid") === usersDF("userid"))
+      .join(occupationsDF, occupationsDF("occupationid") === usersDF("occupationid"))
+      .groupBy(occupationsDF("occupationid"), occupationsDF("OccupationName"), $"genre")
+      .count()
+      .orderBy($"OccupationName".desc, $"genre".desc)
+      .show()
+
 
     spark.stop()
-
   }
 }
